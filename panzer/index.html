@@ -24,6 +24,7 @@
 			var socket = io.connect('http://localhost:8765/');
 			socket.on('logged', function (playerID) {
 				socket.id = playerID;
+				console.log('logged: '+socket.id);
 			});
 
 			$(window).resize(resize);
@@ -219,7 +220,7 @@
 					}
 				},
 				playerMove: function(){
-					socket.emit('playerMove', {j:this.j,i:this.i}); //i,j
+					socket.emit('playerMove', {j:this.j,i:this.i, id:this.id}); //i,j
 				}
 
 			}
@@ -255,12 +256,31 @@
 			}
 
 			//sockets[i].emit('gameState', {players:playersPacket, coins:coins});
-			//sockets[i].emit('gameState', {players:playersPacket, coins:coins});
-			socket.on('gameState', function (packet) { //x,y,vx,vy,playerID
-				console.log(packet.id);
-				console.log(packet.i);
-				console.log(packet.j);
+			socket.on('gameState', function (packet) { //players(i,j,playerID), flags
+				players = {};
+				for (var playerID in packet.players) {
+					var pdata = packet.players[playerID];
+					console.log('hola--------------------'+playerID);
+					var p = new Player (playerID);
+					for (var prop in pdata) p[prop] = pdata[prop];
+					p.generateSprite();
+					players[p.id] = p;
+				}
+				/*for(packetID in packet){
+					players[packet[packetID].id].i = packet[packetID].i;
+					players[packet[packetID].id].j = packet[packetID].j;
+				}*/
 			});
+
+			socket.on('playerMove', function (pos){
+				console.log('retro playerMove: '+pos.i);
+				console.log('retro playerMove: '+pos.j);
+				console.log('retro playerMove: '+pos.id);
+				for(var playerID in players)	console.log('el player: '+playerID);
+				players[pos.id].i = pos.i;
+				players[pos.id].j = pos.j;
+			});
+
 			socket.on('playerChangedDirection', function (newDir) { //x,y,vx,vy,playerID
 				console.log('1');
 			});
