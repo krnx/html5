@@ -19,17 +19,18 @@ io.sockets.on('connection', function (socket){
 	for (var playerID in players) {
 		sockets.push(players[playerID].socket);
 	}
-	console.log('llllllllllllll: '+sockets.length);
+	//console.log('Numero de players connectats: '+sockets.length);
 	sendGameState(sockets);
 	
-	socket.on('playerMove', function (pos){
-		console.log('playermove id:'+players[socket.id].id+' j:'+players[socket.id].j+' - i:'+players[socket.id].i);
-		players[socket.id].i = pos.i;
-		players[socket.id].j = pos.j;
+	socket.on('playerMove', function (pos){//j,i,id, direction
+		console.log('S\'ha mogut el player : '+pos.id+' a '+pos.j+','+pos.i+':'+pos.direction);
+		players[pos.id].j = pos.j;
+		players[pos.id].i = pos.i;
+		players[pos.id].id = pos.id;
+		players[pos.id].direction = pos.direction;
 
 		for(var playerID in players){
-			console.log('retro playerMove: '+socket.id);
-			if(players[playerID].id != socket.id)
+			if(players[playerID].id != pos.id)
 				players[playerID].socket.emit('playerMove', pos);
 		}
 	});
@@ -62,8 +63,6 @@ var backgroundMap = [	[3,3,3,3,3,4,3,3,3,3,3,3],
 						[3,3,3,3,3,3,3,3,3,3,3,3]	];
 
 function getRandomMapPos(){
-	console.log('bgl: '+(backgroundMap.length-2));
-	console.log('bg0l: '+(backgroundMap[0].length-2));
 	return {
 		i:(Math.floor(Math.random()*(backgroundMap[0].length-2))+1),
 		j:(Math.floor(Math.random()*(backgroundMap.length-2))+1)};
@@ -93,30 +92,38 @@ function mainLoop(){
 
 function sendGameState (sockets) {
 	var playersPacket = {};
+	var flagsPacket = {};
 	for (var playerID in players) {
 		playersPacket[playerID] = players[playerID].generatePacket();
-		console.log('Players #'+playerID+' - '+players[playerID].id);
+		flagsPacket[playerID] = flags[playerID].generatePacket();
+		//console.log('Players #'+playerID+' - '+players[playerID].id);
 	}
 	//Envia un emit a tots els sockets connectats
 	for (var i = 0; i < sockets.length; ++i) {
-		console.log('Sockets #'+i+' - '+sockets[i].id);
-		sockets[i].emit('gameState', {players:playersPacket});
+		//console.log('Sockets #'+i+' - '+sockets[i].id);
+		sockets[i].emit('gameState', {players:playersPacket,flags:flagsPacket});
 	}
 }
 function Flag(socket){
 	this.id = socket.id;
 	this.socket = socket;
-	console.log('arnau'+socket.id);
+	//console.log('Socket id:'+socket.id);
 	this.j = players[this.id].j;
 	this.i = players[this.id].i;
-	console.log(this.i);
 	this.untilTick = 1000/1;
 }
 Flag.prototype = {
-	
+	generatePacket: function(){
+		var packet = {};
+		packet.i = this.i;
+		packet.j = this.j;
+		packet.id = this.socket.id;
+		return packet;
+	}
 };
 
 function Player(socket){
+	this.direction = 'W';
 	this.id = socket.id;
 	this.j = getRandomMapPos().i;
 	this.i = getRandomMapPos().j;
@@ -129,7 +136,7 @@ Player.prototype = {
 		this.untilTick -= delta;
 
 		if(this.untilTick < 0){
-			console.log('1 seg.');
+			//console.log('1 seg.');
 			this.untilTick = 6000/1;
 		}
 		var tile = BackgroundTiles[backgroundMap[this.i][this.j]];
@@ -172,8 +179,8 @@ Player.prototype = {
 	},
 	disconnect: function () {
 		delete players[this.id];
-		console.log('player borrat:'+ this.id);
-		for(var playerID in players) console.log('player restant: '+players[playerID].id);
+		//console.log('player borrat:'+ this.id);
+		//for(var playerID in players) console.log('player restant: '+players[playerID].id);
 		needsGameStateUpdate = true;
 	},
 	generatePacket: function(){
@@ -181,7 +188,8 @@ Player.prototype = {
 		packet.i = this.i;
 		packet.j = this.j;
 		packet.id = this.socket.id;
-		return packet;
+		packet.direction = this.direction;
+		return packet;dfiudgf
 	}
 
 }

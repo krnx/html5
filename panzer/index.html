@@ -21,7 +21,9 @@
 			          };
 			})();
 			
-			var socket = io.connect('http://localhost:8765/');
+			//var socket = io.connect('http://localhost:8765/');
+			var socket = io.connect('http://192.168.0.196:8765/');
+			
 			socket.on('logged', function (playerID) {
 				socket.id = playerID;
 				console.log('logged: '+socket.id);
@@ -74,12 +76,14 @@
 						grass.i = i;
 						grass.j = j;
 						var pos = posForIndex(i, j);
+						grass.anchor.x = 0.5;
+						grass.anchor.y = 0.5;
 						grass.position = pos;
 						spriteContainer.addChild(grass);
 					}
 				}
-				players[socket.id] = new Player(socket.id);
-				flags[socket.id] = new Flag(socket.id);
+				//players[socket.id] = new Player(socket.id);
+				//flags[socket.id] = new Flag(socket.id);
 				
 				//players['krnx'] = new Player('krnx');
 				//flags['krnx'] = new Flag('krnx');
@@ -129,73 +133,119 @@
 			var players = {};
 			var flags = {};
 			var oldKeysCHAR = keyboard.keysCHAR;
+			var dirValue = {'W':0,'S':3,'D':1.5,'A':4.5};
 			
 			function Flag(id){
 				this.id = id;
 				this.j = players[this.id].j;
 				this.i = players[this.id].i;
-				console.log(this.i);
-				this.generateSprite();
+				//this.generateSprite();
 				this.untilTick = 1000/1;
-				spriteContainer.addChild(players[this.id].sprite);
 			}
 			Flag.prototype = {
 				generateSprite: function(){
 					this.sprite = new PIXI.Sprite.fromFrame('bandera');
 					var pos = posForIndex(this.i, this.j);
+					this.sprite.anchor.x = 0.1;
+					this.sprite.anchor.y = 0.3;
 					this.sprite.position = pos;
 					spriteContainer.addChild(this.sprite);
+				},
+				removeSprite : function () {
+					spriteContainer.removeChild(this.sprite);
 				}
 			};
 
 			function Player(id){
 				this.id = id;
-				this.j = getRandomMapPos().i;
-				this.i = getRandomMapPos().j;
-				this.generateSprite();
+				this.direction = 'W';
+				//this.j = getRandomMapPos().i;
+				//this.i = getRandomMapPos().j;
+				//this.generateSprite();
 				this.untilTick = 1000/1;
 			}
 			Player.prototype = {
 				generateSprite : function () {
 					this.sprite = new PIXI.Sprite.fromFrame('panzer2');
 					var pos = posForIndex(this.i, this.j);
+					this.sprite.anchor.x = 0.5;
+					this.sprite.anchor.y = 0.5;
+					this.sprite.rotation = 4.5;
 					this.sprite.position = pos;
+					
 					spriteContainer.addChild(this.sprite);
+				},
+				removeSprite : function () {
+					spriteContainer.removeChild(this.sprite);
 				},
 				logic: function(){
 					var oldPosition = {i:this.i, j:this.j};
 					this.untilTick -= delta;
+					
+					if(socket.id == this.id){
+						if (keyboard.keysCHAR['W'] && !oldKeysCHAR['W'] && keyboard.keysCHAR[this.direction]){
+							this.i -= 1;
+						}else if(keyboard.keysCHAR['W'] && !oldKeysCHAR['W'] && !keyboard.keysCHAR[this.direction]){
+							this.direction = 'W';
+							this.sprite.rotation = 0;
+							this.playerMove();
+						}
+						else if (keyboard.keysCHAR['S'] && !oldKeysCHAR['S'] && keyboard.keysCHAR[this.direction]){
+							this.i += 1;
+						}else if(keyboard.keysCHAR['S'] && !oldKeysCHAR['S'] && !keyboard.keysCHAR[this.direction]){
+							this.direction = 'S';
+							this.sprite.rotation = 3;
+							this.playerMove();
+						} 
+						else if (keyboard.keysCHAR['D'] && !oldKeysCHAR['D'] && keyboard.keysCHAR[this.direction]){
+							this.j += 1;
+						}else if(keyboard.keysCHAR['D'] && !oldKeysCHAR['D'] && !keyboard.keysCHAR[this.direction]){
+							this.direction = 'D';
+							this.sprite.rotation = 1.5;
+							this.playerMove();
+						} 
+						else if (keyboard.keysCHAR['A'] && !oldKeysCHAR['A'] && keyboard.keysCHAR[this.direction]){
+							this.j -= 1;
+						}else if(keyboard.keysCHAR['A'] && !oldKeysCHAR['A'] && !keyboard.keysCHAR[this.direction]){
+							this.direction = 'A';
+							this.sprite.rotation = 4.5;
+							this.playerMove();
+						}
 
-					if (keyboard.keysCHAR['W'] && !oldKeysCHAR['W']) this.i -= 1;
-					if (keyboard.keysCHAR['S'] && !oldKeysCHAR['S']) this.i += 1;
-					if (keyboard.keysCHAR['D'] && !oldKeysCHAR['D']) this.j += 1;
-					if (keyboard.keysCHAR['A'] && !oldKeysCHAR['A']) this.j -= 1;
-
-					if(this.untilTick < 0){
-						console.log('1 seg.');
-						this.untilTick = 6000/1;
-					}
-					var tile = BackgroundTiles[backgroundMap[this.i][this.j]];
-					if(!tile.walkable){
-						//console.log('j:'+this.j+', i:'+this.i+' bg:'+backgroundMap[this.i][this.j]);
-						this.i = oldPosition.i;
-						this.j = oldPosition.j;
-						console.log('Nop!');
-					}else{
-						//Comprovar si hi ha player, bandera o mort
-						if (oldPosition.i != this.i || oldPosition.j != this.j) {
-							if(this.hitTestPlayer()) {
-								this.i = oldPosition.i;
-								this.j = oldPosition.j;
-							}else{
-								this.playerMove();
-								if (this.hitTestFlag()){
-									spriteContainer.addChild(new PIXI.Text('You win!'));
+						if(this.untilTick < 0){
+							console.log('1 seg.');
+							this.untilTick = 6000/1;
+						}
+						var tile = BackgroundTiles[backgroundMap[this.i][this.j]];
+						if(!tile.walkable){
+							//console.log('j:'+this.j+', i:'+this.i+' bg:'+backgroundMap[this.i][this.j]);
+							this.i = oldPosition.i;
+							this.j = oldPosition.j;
+							console.log('Nop!');
+						}else{
+							//Comprovar si hi ha player, bandera o mort
+							if (oldPosition.i != this.i || oldPosition.j != this.j) {
+								if(this.hitTestPlayer()) {
+									this.i = oldPosition.i;
+									this.j = oldPosition.j;
+								}else{
+									this.playerMove();
+									if (this.hitTestFlag()){
+										spriteContainer.addChild(new PIXI.Text('You win!'));
+									}
 								}
 							}
 						}
 					}
-					var pos = posForIndex(this.i,this.j);
+					var pos = posForIndex(this.i, this.j);
+					if(this.direction == 'A')
+						this.sprite.rotation = 4.5;
+					if(this.direction == 'D')
+						this.sprite.rotation = 1.5;
+					if(this.direction == 'W')
+						this.sprite.rotation = 0;
+					if(this.direction == 'S')
+						this.sprite.rotation = 3;
 					this.sprite.position.x += (pos.x-this.sprite.position.x)/5;
 					this.sprite.position.y += (pos.y-this.sprite.position.y)/5;
 				},
@@ -212,7 +262,7 @@
 						if(flags[flagID].id != this.id){
 							if (hitTest(this, flags[flagID])) {
 								win = true;
-								spriteContainer.removeChild(flags[flagID].sprite);
+								//..removeChild(flags[flagID].sprite);
 								spriteContainer.removeChild(players[flagID].sprite);
 								return true;
 							}
@@ -220,7 +270,8 @@
 					}
 				},
 				playerMove: function(){
-					socket.emit('playerMove', {j:this.j,i:this.i, id:this.id}); //i,j
+					//console.log('Es mou el player: ' + this.id + ' a ' + this.j + ',' + this.i+':'+this.direction);
+					socket.emit('playerMove', {j:this.j,i:this.i, id:this.id, direction:this.direction}); //i,j,id,direction
 				}
 
 			}
@@ -245,45 +296,50 @@
 				for(var playerID in players){
 					players[playerID].logic();
 				}
-
 				oldKeysCHAR = {};
 				for (var key in keyboard.keysCHAR) {
 					oldKeysCHAR[key] = keyboard.keysCHAR[key];
 				}
-
 				requestAnimationFrame(mainLoop);
 				renderer.render(stage);
 			}
 
-			//sockets[i].emit('gameState', {players:playersPacket, coins:coins});
-			socket.on('gameState', function (packet) { //players(i,j,playerID), flags
-				players = {};
-				for (var playerID in packet.players) {
-					var pdata = packet.players[playerID];
-					console.log('hola--------------------'+playerID);
-					var p = new Player (playerID);
-					for (var prop in pdata) p[prop] = pdata[prop];
-					p.generateSprite();
-					players[p.id] = p;
+			socket.on('gameState', function (packet) { //players{i,j,playerID,direction}, flags{i,j,playerID}								
+				for (var playerID in players) {
+					console.log('19: '+players[playerID].id);
+					if(!packet.players[playerID] && players[playerID]){
+					}
+					if (socket.id != players[playerID].id){}
+						players[playerID].removeSprite();
+						flags[playerID].removeSprite();
+						delete players[playerID];
+						delete flags[playerID];
 				}
-				/*for(packetID in packet){
-					players[packet[packetID].id].i = packet[packetID].i;
-					players[packet[packetID].id].j = packet[packetID].j;
-				}*/
+				for (var playerID in packet.players) {
+					if(!players[playerID]){
+						var pdata = packet.players[playerID];
+						var p = new Player (playerID);
+						for (var prop in pdata) p[prop] = pdata[prop];
+						p.generateSprite();
+						players[p.id] = p;
+						flags[p.id] = new Flag(p.id);
+						flags[p.id].generateSprite();
+					}
+				}
 			});
 
-			socket.on('playerMove', function (pos){
-				console.log('retro playerMove: '+pos.i);
-				console.log('retro playerMove: '+pos.j);
-				console.log('retro playerMove: '+pos.id);
-				for(var playerID in players)	console.log('el player: '+playerID);
+			socket.on('playerMove', function (pos){//j,i,id, direction
+				//console.log('19 S\'ha mogut el player : '+pos.id+' a '+pos.j+','+pos.i+':'+pos.direction);
+				//for(var playerID in players)	console.log('el player: '+playerID);
 				players[pos.id].i = pos.i;
 				players[pos.id].j = pos.j;
+				players[pos.id].direction = pos.direction;
+				players[pos.id].logic();
 			});
 
-			socket.on('playerChangedDirection', function (newDir) { //x,y,vx,vy,playerID
+			/*socket.on('playerChangedDirection', function (newDir) { //x,y,vx,vy,playerID
 				console.log('1');
-			});
+			});*/
 		</script>
 	</body>		</script>
 
