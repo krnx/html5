@@ -22,7 +22,8 @@
 			          };
 			})();
 			
-			var socket = io.connect('http://localhost:8765/');
+			//var socket = io.connect('http://localhost:8765/');
+			var socket = io.connect('http://192.168.0.196:8765/');
 			
 			socket.on('logged', function (playerID) {
 				socket.id = playerID;

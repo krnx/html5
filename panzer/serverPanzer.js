@@ -34,6 +34,13 @@ io.sockets.on('connection', function (socket){
 				players[playerID].socket.emit('playerMove', pos);
 		}
 	});
+	socket.on('playerWin', function (id){//id
+		//spriteContainer.addChild(new PIXI.Text('You win!'));
+		console.log('Ha guanyat el player: '+id);
+		for(var playerID in players){
+			players[playerID].socket.emit('playerHasWon', id);
+		}
+	});
 });
 
 function BackgroundTileProperties (props) {
