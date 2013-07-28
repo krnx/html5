@@ -22,7 +22,8 @@
 			          };
 			})();
 			
-			var socket = io.connect('http://localhost:8765/');
+			//var socket = io.connect('http://localhost:8765/');
+			var socket = io.connect('http://192.168.0.196:8765/');
 			
 			socket.on('logged', function (playerID) {
 				socket.id = playerID;
@@ -281,7 +282,6 @@
 				},
 				playerMove: function(){
 					//console.log('Es mou el player: ' + this.id + ' a ' + this.j + ',' + this.i+':'+this.direction);
-					console.log('sound');
 					//sound.stop();
 					sound.fadeIn(1.0,1000);
 					sound.play('moving');
@@ -354,6 +354,10 @@
 				players[pos.id].j = pos.j;
 				players[pos.id].direction = pos.direction;
 				players[pos.id].logic();
+				//so dels altres players
+				sound.fadeIn(1.0,1000);
+				sound.play('moving');
+				sound.fadeOut(0.0,1000);
 			});
 
 			socket.on('playerHasWon', function (id){
